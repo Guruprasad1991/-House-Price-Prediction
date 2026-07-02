@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      target: runtime
+    image: house-price-prediction:latest
+    container_name: house-price-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount trained models so you can retrain without rebuilding the image
+      - ./models:/app/models:ro
+    environment:
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
