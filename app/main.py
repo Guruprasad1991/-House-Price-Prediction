@@ -15,9 +15,11 @@ from __future__ import annotations
 import logging
 import time
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import RedirectResponse
 
 from app.model import ModelNotReadyError, get_predictor
@@ -78,6 +80,46 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── OpenAPI schema: force 3.0.3 for Swagger UI compatibility ─────────────────
+# FastAPI 0.99+ emits OpenAPI 3.1.0 with `exclusiveMinimum: <number>`.
+# Swagger UI < 5.x and some 5.x builds misparse that format.
+# This post-processes the schema to OpenAPI 3.0.3 (boolean exclusiveMinimum)
+# which every Swagger UI version handles correctly.
+
+def _fix_exclusive_bounds(obj: Any) -> None:
+    """Recursively rewrite 3.1 numeric exclusiveMinimum/Maximum to 3.0 style."""
+    if isinstance(obj, dict):
+        if "exclusiveMinimum" in obj and isinstance(obj["exclusiveMinimum"], (int, float)):
+            obj["minimum"] = obj.pop("exclusiveMinimum")
+            obj["exclusiveMinimum"] = True
+        if "exclusiveMaximum" in obj and isinstance(obj["exclusiveMaximum"], (int, float)):
+            obj["maximum"] = obj.pop("exclusiveMaximum")
+            obj["exclusiveMaximum"] = True
+        for v in obj.values():
+            _fix_exclusive_bounds(v)
+    elif isinstance(obj, list):
+        for item in obj:
+            _fix_exclusive_bounds(item)
+
+
+def custom_openapi() -> dict:
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    schema["openapi"] = "3.0.3"   # downgrade version string
+    _fix_exclusive_bounds(schema)
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = custom_openapi  # type: ignore[method-assign]
 
 
 # ── Middleware: request timing ────────────────────────────────────────────────
