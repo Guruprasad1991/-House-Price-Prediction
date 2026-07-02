@@ -9,7 +9,7 @@ services:
     region: oregon          # free tier available in oregon & frankfurt
 
     # Build: install deps + train the model, saving artifacts to models/
-    buildCommand: "pip install -r requirements.txt && python -m ml.train --model random_forest --n-estimators 100"
+    buildCommand: "pip install -r requirements.txt && python -m ml.train --model random_forest --n-estimators 50 --max-depth 20"
 
     # Start: Render injects $PORT automatically
     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips=*"
