@@ -1,0 +1,24 @@
+# Render Blueprint — deploys the FastAPI service on Render's free tier.
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: house-price-api
+    env: python
+    plan: free
+    region: oregon          # free tier available in oregon & frankfurt
+
+    # Build: install deps + train the model, saving artifacts to models/
+    buildCommand: "pip install -r requirements.txt && python -m ml.train --model random_forest --n-estimators 100"
+
+    # Start: Render injects $PORT automatically
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+
+    # Health check — Render uses this to know when your service is up
+    healthCheckPath: /health
+
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: LOG_LEVEL
+        value: info

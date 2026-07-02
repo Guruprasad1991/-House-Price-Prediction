@@ -3,11 +3,23 @@
 ![CI](https://github.com/Guruprasad1991/-House-Price-Prediction/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green)
+![scikit--learn](https://img.shields.io/badge/scikit--learn-1.5-orange)
 ![Docker](https://img.shields.io/badge/docker-ready-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
-A **production-ready** machine learning service that predicts California median house values.  
-Built with scikit-learn, served via FastAPI, containerised with Docker, and tested with pytest.
+A **production-ready** machine learning API that predicts California median house values.  
+Built with scikit-learn · Served via FastAPI · Containerised with Docker · Auto-deployed via Render.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Guruprasad1991/-House-Price-Prediction)
+
+---
+
+## 🔗 Live Demo
+
+> **API:** `https://house-price-api.onrender.com`  
+> **Interactive docs:** `https://house-price-api.onrender.com/docs`
+
+*(The free Render tier sleeps after 15 min of inactivity — the first request after a sleep wakes it in ~30 seconds.)*
 
 ---
 
@@ -44,7 +56,7 @@ Built with scikit-learn, served via FastAPI, containerised with Docker, and test
 house-price-prediction/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml           # GitHub Actions: lint → test → docker build
+│       └── ci.yml           # Lint → Test → Docker build on every push
 ├── app/
 │   ├── main.py              # FastAPI routes
 │   ├── model.py             # Singleton model loader
@@ -53,80 +65,70 @@ house-price-prediction/
 │   ├── preprocess.py        # Data loading, feature engineering, scaling
 │   ├── train.py             # Training script (CLI)
 │   └── evaluate.py          # Metrics & feature-importance report
-├── models/                  # Trained artifacts (gitignored)
-│   ├── model.joblib
-│   ├── preprocessor.joblib
-│   └── metadata.json
+├── models/                  # Trained artifacts (generated at build time)
 ├── tests/
-│   ├── test_api.py          # FastAPI endpoint tests
-│   └── test_model.py        # ML pipeline unit tests
+│   ├── test_api.py          # FastAPI endpoint tests (17 tests)
+│   └── test_model.py        # ML pipeline unit tests (20 tests)
 ├── Dockerfile               # Multi-stage build
 ├── docker-compose.yml
+├── render.yaml              # Render deployment config
 ├── requirements.txt
-├── requirements-dev.txt
-├── .env.example
-└── README.md
+└── requirements-dev.txt
 ```
 
 ---
 
-## 🚀 Quick Start
-
-### Option A — Docker (recommended)
+## 🚀 Run Locally
 
 ```bash
-# 1. Clone the repo
+# 1. Clone
 git clone https://github.com/Guruprasad1991/-House-Price-Prediction.git
 cd -House-Price-Prediction
 
-# 2. Build image (trains model inside Docker)
-docker build -t house-price-prediction .
+# 2. Create virtual environment
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
-# 3. Run
-docker run -p 8000:8000 house-price-prediction
+# 3. Install dependencies
+pip install -r requirements.txt
 
-# 4. Open the interactive docs
-open http://localhost:8000/docs
+# 4. Train the model (saves artifacts to models/)
+python -m ml.train
+
+# 5. Start the API
+uvicorn app.main:app --reload
+
+# Open: http://localhost:8000/docs
 ```
 
-Or with docker-compose (after training locally first):
+Or with Docker:
 
 ```bash
-python -m ml.train          # train & save artifacts to models/
-docker-compose up --build
+docker build -t house-price-prediction .
+docker run -p 8000:8000 house-price-prediction
 ```
 
 ---
 
-### Option B — Local (virtualenv)
+## ☁️ Deploy to Render (free)
 
-```bash
-# 1. Create & activate virtual environment
-python -m venv .venv
-source .venv/bin/activate      # Windows: .venv\Scripts\activate
+Click the button above, or follow these steps:
 
-# 2. Install dependencies
-pip install -r requirements.txt
+1. Go to [dashboard.render.com](https://dashboard.render.com) → **New → Web Service**
+2. Connect this GitHub repository
+3. Render reads `render.yaml` — all settings are pre-configured
+4. Click **Deploy** → your API is live in ~3 minutes
 
-# 3. Train the model
-python -m ml.train
-
-# 4. Start the API
-uvicorn app.main:app --reload
-
-# 5. Open docs
-open http://localhost:8000/docs
-```
+Every `git push` to `main` triggers an automatic redeploy.
 
 ---
 
 ## 🔌 API Reference
 
 ### `GET /health`
-Returns model status and training metrics.
 
 ```bash
-curl http://localhost:8000/health
+curl https://house-price-api.onrender.com/health
 ```
 
 ```json
@@ -134,34 +136,22 @@ curl http://localhost:8000/health
   "status": "ok",
   "model_name": "random_forest",
   "trained_at": "2026-07-02T10:00:00+00:00",
-  "metrics": {
-    "mae": 0.3321,
-    "rmse": 0.5012,
-    "r2": 0.8134,
-    "mape": 18.42
-  },
-  "feature_names": ["MedInc", "HouseAge", "..."],
+  "metrics": { "mae": 0.332, "rmse": 0.501, "r2": 0.813, "mape": 18.4 },
+  "feature_names": ["MedInc", "HouseAge", "AveRooms", "..."],
   "version": "1.0.0"
 }
 ```
 
----
-
 ### `POST /predict`
-Predict the median house value for a single house.
 
 ```bash
-curl -X POST http://localhost:8000/predict \
+curl -X POST https://house-price-api.onrender.com/predict \
   -H "Content-Type: application/json" \
   -d '{
-    "MedInc":     8.3252,
-    "HouseAge":   41.0,
-    "AveRooms":   6.98,
-    "AveBedrms":  1.02,
-    "Population": 322.0,
-    "AveOccup":   2.56,
-    "Latitude":   37.88,
-    "Longitude": -122.23
+    "MedInc": 8.3252, "HouseAge": 41.0,
+    "AveRooms": 6.98,  "AveBedrms": 1.02,
+    "Population": 322, "AveOccup": 2.56,
+    "Latitude": 37.88, "Longitude": -122.23
   }'
 ```
 
@@ -169,63 +159,39 @@ curl -X POST http://localhost:8000/predict \
 {
   "predicted_price_usd": 452600.00,
   "predicted_price_100k": 4.526,
-  "model_name": "random_forest",
-  "confidence_note": "Point estimate only. See /health for model metrics."
+  "model_name": "random_forest"
 }
 ```
 
----
-
 ### `POST /predict/batch`
-Predict for up to 1,000 houses in one call.
 
-```bash
-curl -X POST http://localhost:8000/predict/batch \
-  -H "Content-Type: application/json" \
-  -d '{
-    "houses": [
-      {"MedInc": 8.3, "HouseAge": 41, "AveRooms": 6.98, "AveBedrms": 1.02,
-       "Population": 322, "AveOccup": 2.56, "Latitude": 37.88, "Longitude": -122.23},
-      {"MedInc": 3.5, "HouseAge": 25, "AveRooms": 5.0, "AveBedrms": 1.1,
-       "Population": 800, "AveOccup": 3.0, "Latitude": 34.05, "Longitude": -118.24}
-    ]
-  }'
+Send up to 1,000 houses in one request:
+
+```json
+{ "houses": [ { ...house1... }, { ...house2... } ] }
 ```
 
 ---
 
-## 🧪 Running Tests
+## 🧪 Tests
 
 ```bash
-# Install dev dependencies
 pip install -r requirements-dev.txt
-
-# Train model first (needed for integration tests)
-python -m ml.train --n-estimators 20
-
-# Run all tests with coverage
+python -m ml.train --n-estimators 20   # fast train for testing
 pytest tests/ -v --cov=app --cov=ml
-
-# Run only fast unit tests (no training)
-pytest tests/test_api.py -v
 ```
+
+37 tests covering ML pipeline, API validation, error cases, and batch prediction.
 
 ---
 
 ## 🏋️ Training Options
 
 ```bash
-# Default: Random Forest (best accuracy)
-python -m ml.train
-
-# Linear Regression (fastest, interpretable)
-python -m ml.train --model linear
-
-# Ridge Regression (linear + regularisation)
-python -m ml.train --model ridge --alpha 0.5
-
-# Larger Random Forest (higher accuracy, slower)
-python -m ml.train --model random_forest --n-estimators 300
+python -m ml.train                          # default: Random Forest 100 trees
+python -m ml.train --model linear           # Linear Regression (fastest)
+python -m ml.train --model ridge            # Ridge Regression
+python -m ml.train --n-estimators 300       # larger forest (more accurate)
 ```
 
 ---
@@ -236,30 +202,29 @@ python -m ml.train --model random_forest --n-estimators 300
 |---------------|-------|---------|---------|
 | Linear        | 0.607 | 51,200  | 73,800  |
 | Ridge         | 0.608 | 51,100  | 73,700  |
-| Random Forest | 0.813 | 33,200  | 50,100  |
+| **Random Forest** | **0.813** | **33,200** | **50,100** |
 
-*Evaluated on 20% hold-out test set of the California Housing dataset.*
+*Evaluated on 20% hold-out of the California Housing dataset (20,640 rows).*
 
 ---
 
-## 🔄 CI/CD Pipeline
+## 🔄 CI Pipeline
 
-Every push to `main` or `develop` triggers:
+Every push runs three jobs via GitHub Actions:
 
-1. **Lint** — black (format) + flake8 (style)
-2. **Test** — pytest with coverage report
-3. **Docker** — build image + smoke-test `/health` endpoint
-
-See `.github/workflows/ci.yml` for details.
+| Job | What it checks |
+|-----|---------------|
+| Lint | black (formatting) + flake8 (style) |
+| Test | pytest with coverage report |
+| Docker | Build image + smoke-test /health |
 
 ---
 
 ## 🗺️ Roadmap
 
-- [ ] MLflow experiment tracking
 - [ ] Streamlit dashboard frontend
+- [ ] MLflow experiment tracking
 - [ ] Model versioning with DVC
-- [ ] Deploy to AWS/GCP/Azure
 - [ ] Automated retraining on new data
 
 ---

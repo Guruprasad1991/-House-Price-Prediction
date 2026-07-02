@@ -1,0 +1,9 @@
+# Render handles deployment automatically when connected to this repo.
+# No workflow file needed — every push to main triggers a new Render build.
+#
+# To connect:
+#   1. Go to https://dashboard.render.com
+#   2. New → Web Service → connect this GitHub repo
+#   3. Render reads render.yaml and configures everything automatically
+#
+# This file intentionally left minimal.
